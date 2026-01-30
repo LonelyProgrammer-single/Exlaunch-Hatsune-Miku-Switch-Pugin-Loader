@@ -1,7 +1,7 @@
 # exlaunch
 A framework for injecting C/C++ code into Nintendo Switch applications/applet/sysmodules.
 Forked specifically for Hatsune Miku Project Diva Megamix!
-I plan to port most cool pacthes made for Project Diva Megamix+ for PC to Nintendo Switch, starting with ones from DivaModLoader.
+I plan to port most cool hook based pacthes made for Project Diva Megamix+ for PC to Nintendo Switch, starting with ones from DivaModLoader.
 ^.^
 
 > [!NOTE]
