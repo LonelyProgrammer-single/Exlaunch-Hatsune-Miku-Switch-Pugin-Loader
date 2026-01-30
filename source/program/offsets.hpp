@@ -1,4 +1,4 @@
-#pragma once
+/*#pragma once
 
 #include <common.hpp>
 #include <tuple>
@@ -32,6 +32,7 @@ namespace exl::reloc {
             { util::ModuleIndex::Main,          0x4201,                     "example1" },
             { util::ModuleIndex::Sdk,           0x4202,                     "example2" }
         >
-        */
+        
     >;
 }
+*/
