@@ -12,7 +12,7 @@ namespace exl::reloc {
     using UserTableType = VersionedTable<Version, Entries...>;
 
     using UserTableSet = TableSet<VersionType 
-        /*
+        
         // This feature allows you to specify symbols in your executable to resolve with module+offset pairs.
         // They are packed up and sorted at compile time so they can be efficiently looked up.
         // The `exl::reloc::GetLookupTable` API is provided if you want to look up entries in the table explicitly.
@@ -35,4 +35,3 @@ namespace exl::reloc {
         
     >;
 }
-*/
