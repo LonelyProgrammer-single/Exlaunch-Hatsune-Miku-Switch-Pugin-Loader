@@ -18,10 +18,6 @@
 #define LOG_PATH            "ExlSD:/DivaLog.txt"
 #define SAVE_PATH           "ExlSD:/DivaModData.dat"
 
-// Offsets within the Score structure
-#define OFF_BASE_DATA       0x10E4      
-#define OFF_SETTINGS_BASE   0x11A8      
-
 // Hook Addresses
 #define ADDR_FIND_OR_CREATE FIX(0x0C62E0)
 #define ADDR_FIND_SCORE     FIX(0x0C7990)
@@ -175,7 +171,6 @@ HOOK_DEFINE_TRAMPOLINE(MainHook) {
     static void Callback() {
         nn::fs::MountSdCardForDebug(MOUNT_NAME);
         g_FsReady = true;
-        exl::patch::CodePatcher(ADDR_UNLOCK_PATCH).Write<uint32_t>(0x52800020); 
         Orig(); 
     }
 };
