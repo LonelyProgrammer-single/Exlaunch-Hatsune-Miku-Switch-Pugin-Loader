@@ -7,11 +7,12 @@
 #include <mutex>
 #include <cstring>
 #include <cstdarg>
+#include "patches.hpp"
 
 // =========================================================
 // ADDRESSES & CONSTANTS (NSO = Ghidra - 0x100)
 // =========================================================
-#define FIX(addr)           ((addr) - 0x100)
+
 #define SCORE_SIZE          0x11F4
 #define MOUNT_NAME          "ExlSD"
 #define LOG_PATH            "ExlSD:/DivaLog.txt"
@@ -24,16 +25,11 @@
 // Hook Addresses
 #define ADDR_FIND_OR_CREATE FIX(0x0C62E0)
 #define ADDR_FIND_SCORE     FIX(0x0C7990)
-#define ADDR_GET_MODULE     FIX(0x0C9170) 
-#define ADDR_GET_ITEM       FIX(0x0C8FD0) 
-#define ADDR_GET_SETTINGS   FIX(0x0C92A0)
 #define ADDR_REGISTER_SCORE FIX(0x0C87F0)
 #define ADDR_SAVE_MANAGER   FIX(0x0C9820)
 #define ADDR_INIT_BOOT_2    FIX(0x0C5950)
 #define ADDR_SYNC_MANAGER   FIX(0x0C6440) 
 
-// Patch Address
-#define ADDR_UNLOCK_PATCH   FIX(0x0CA400) 
 
 // =========================================================
 // GLOBALS
@@ -141,40 +137,6 @@ HOOK_DEFINE_TRAMPOLINE(FindScoreHook) {
     }
 };
 
-// Helper for Items/Modules
-inline void* GetItemModuleLogic(int32_t id, uint32_t slot) {
-    std::scoped_lock lock(g_SaveMtx);
-    if (g_scoreMap.count(id)) {
-        return (uint8_t*)g_scoreMap[id] + OFF_BASE_DATA + (slot * 28);
-    }
-    return nullptr;
-}
-
-HOOK_DEFINE_TRAMPOLINE(GetItemHook) {
-    static void* Callback(void* mgr, int32_t id, uint32_t slot) {
-        void* custom = GetItemModuleLogic(id, slot);
-        if (custom) return custom;
-        return Orig(mgr, id, slot);
-    }
-};
-
-HOOK_DEFINE_TRAMPOLINE(GetModuleHook) {
-    static void* Callback(void* mgr, int32_t id, uint32_t slot) {
-        void* custom = GetItemModuleLogic(id, slot);
-        if (custom) return custom;
-        return Orig(mgr, id, slot);
-    }
-};
-
-HOOK_DEFINE_TRAMPOLINE(GetSettingsHook) {
-    static void* Callback(void* mgr, int32_t id, uint32_t type) {
-        std::scoped_lock lock(g_SaveMtx);
-        if (g_scoreMap.count(id)) return (uint8_t*)g_scoreMap[id] + OFF_SETTINGS_BASE;
-        return Orig(mgr, id, type);
-    }
-};
-
-
 HOOK_DEFINE_TRAMPOLINE(SaveManagerHook) {
     static uint64_t Callback(int mode) {
         uint64_t res = Orig(mode);
@@ -220,14 +182,11 @@ HOOK_DEFINE_TRAMPOLINE(MainHook) {
 
 extern "C" void exl_main(void* x0, void* x1) {
     exl::hook::Initialize();
+    ApplyCustomPatches();  
     MainHook::InstallAtFuncPtr(nnMain);
 
     FindOrCreateScoreHook::InstallAtOffset(ADDR_FIND_OR_CREATE);
     FindScoreHook::InstallAtOffset(ADDR_FIND_SCORE);
-    GetSettingsHook::InstallAtOffset(ADDR_GET_SETTINGS);
-    GetItemHook::InstallAtOffset(ADDR_GET_ITEM);
-    GetModuleHook::InstallAtOffset(ADDR_GET_MODULE);
-
     SaveManagerHook::InstallAtOffset(ADDR_SAVE_MANAGER);
     InitBoot2Hook::InstallAtOffset(ADDR_INIT_BOOT_2);
     SyncManagerHook::InstallAtOffset(ADDR_SYNC_MANAGER);
