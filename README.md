@@ -17,8 +17,7 @@ I plan to port most cool hook based pacthes made for Project Diva Megamix+ for P
 - Increased limit of lyric entries from 150 to 1000 in pv_db
 - Mod_str_array.toml support
 - Saturation patch for my friend
-  
-Scripts for parsing and merging multiple pv_db/toml into one.
+- Scripts for parsing and merging multiple pv_db/toml into one.
 
 # Credit
 - Atmosphère: A great reference and guide.
