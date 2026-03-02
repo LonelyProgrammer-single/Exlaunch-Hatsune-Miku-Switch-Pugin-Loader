@@ -16,8 +16,9 @@ I plan to port most cool hook based pacthes made for Project Diva Megamix+ for P
 - Huge full implementation of str_array code injection to make modules to work properly without crashing the game, since simple patches wasn't enough. Custom hairs work too!
 - Increased limit of lyric entries from 150 to 1000 in pv_db
 - Mod_str_array.toml support
+- Challenge time for all difficulties
 - Saturation patch for my friend
-- Scripts for parsing and merging multiple pv_db/toml into one.
+- Scripts for parsing and merging multiple pv_db/toml into one; for easy NC->AC
 
 # Credit
 - Atmosphère: A great reference and guide.
