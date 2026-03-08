@@ -1,14 +1,16 @@
 #include "StrArray.hpp"
 #include "lib.hpp"
-#include "patches.hpp" // For FIX() macro
+#include "patches.hpp"
+#include "ModLoader.hpp"
 #include "toml.hpp"
 #include <unordered_map>
 #include <string>
 #include <cstdlib>
+#include <cstring>
 #include "fs.hpp"
 
 // =========================================================
-// ADDRESSES & CONSTANTS
+// ADDRESSES & CONSTANTS (NSO = Ghidra - 0x100)
 // =========================================================
 #define ADDR_LOAD_STR_ARRAY        FIX(0x15D210) 
 #define ADDR_GET_STR               FIX(0x15D480) 
@@ -24,9 +26,6 @@
 // ARM64 NOP instruction
 constexpr uint32_t ARM64_NOP = 0xD503201F;
 
-// =========================================================
-// GLOBAL DICTIONARIES
-// =========================================================
 typedef std::unordered_map<int, std::string> StrByIdMap;
 
 static StrByIdMap strMap;
@@ -37,18 +36,23 @@ static StrByIdMap slideSeStrMap;
 static StrByIdMap chainSlideSeStrMap;
 static StrByIdMap sliderTouchSeStrMap;
 
-// =========================================================
 // TOML PARSING
-// =========================================================
 static void readStrArray(const toml::table* table, StrByIdMap& dstStrMap) {
     if (!table) return;
     for (auto&&[key, value] : *table) {
-        if (value.is_table()) continue;
+        if (value.is_table() || value.is_array()) continue;
+        
+        // Use temporary string to ensure null-termination for strtol
+        std::string keyStr(key.data(), key.length());
         char* end = nullptr;
-        // toml++ guarantees \0 in .data(), so strtol is completely safe here
-        const int id = std::strtol(key.data(), &end, 10);
-        if (end && dstStrMap.find(id) == dstStrMap.end()) {
-            dstStrMap.insert({ id, value.value_or("YOU FORGOT QUOTATION MARKS") });
+        const int id = std::strtol(keyStr.c_str(), &end, 10);
+        
+        if (end != keyStr.c_str() && dstStrMap.find(id) == dstStrMap.end()) {
+            if (value.is_string()) {
+                dstStrMap.insert({ id, std::string(value.as_string()->get()) });
+            } else {
+                dstStrMap.insert({ id, "YOU FORGOT QUOTATION MARKS" });
+            }
         }
     }
 }
@@ -87,9 +91,10 @@ static void loadStrArray(const std::string& filePath) {
     GetLangDirT getLangDir = (GetLangDirT)(exl::util::GetMainModuleInfo().m_Total.m_Start + ADDR_GET_LANG_DIR);
     
     const char* langPath = getLangDir();
-    const char* langName = strstr(langPath, "/");
-    if (langName) langName += 1;
-    else langName = langPath;
+    
+    // FIX: Use strrchr to find the LAST slash to get folder name (e.g. "en" from "rom/lang2/en")
+    const char* lastSlash = strrchr(langPath, '/');
+    const char* langName = lastSlash ? (lastSlash + 1) : langPath;
 
     toml::table* langTable = table.get_as<toml::table>(langName);
 
@@ -103,13 +108,18 @@ static void loadStrArray(const std::string& filePath) {
     readStrArray(&table, langTable, "slidertouch_se", sliderTouchSeStrMap);
 }
 
-// =========================================================
 // BASE HOOKS (TRAMPOLINE)
-// =========================================================
 HOOK_DEFINE_TRAMPOLINE(LoadStrArrayHook) {
     static void Callback() {
         Orig(); 
-        // these were offered by my friend dandy_bleat
+        
+        // Load strings from every mod directory
+        for (const auto& modPath : ModLoader::modDirectoryPaths) {
+            loadStrArray(modPath + "/rom/lang2/mod_str_array.toml"); 
+            loadStrArray(modPath + "/rom/lang2/str_array.toml");     
+        }
+        
+        // Load localized DML specific and DLC string arrays
         loadStrArray("ExlSD:/DMLSwitchPort/lang2/mod_str_array.toml"); 
         loadStrArray("ExlSD:/DMLSwitchPort/lang2/str_array.toml");
         loadStrArray("ExlSD:/DMLSwitchPort/lang2/mdata_str_array.toml");
@@ -133,7 +143,6 @@ HOOK_DEFINE_TRAMPOLINE(LoadStrArrayHook) {
         loadStrArray("ExlSD:/DMLSwitchPort/lang2/dlc17_str_array.toml");   
         loadStrArray("ExlSD:/DMLSwitchPort/lang2/dlc18_str_array.toml");   
         loadStrArray("ExlSD:/DMLSwitchPort/lang2/dlc19_str_array.toml"); 
-        // he told people will need them
     }
 };
 
@@ -149,9 +158,7 @@ public:
     }
 };
 
-// =========================================================
-// INTERNAL LOGIC FUNCTIONS
-// =========================================================
+// IMPLEMENTATION WRAPPERS
 static const char* getModuleNameImp(int str_id, int module_id) {
     auto it = moduleStrMap.find(module_id);
     if (it != moduleStrMap.end()) return it->second.c_str();
@@ -188,9 +195,7 @@ static const char* getSlideSeNameImp(int str_id, int slideSe_id) {
     return GetStrHook::Callback(str_id);
 }
 
-// =========================================================
 // INLINE HOOKS
-// =========================================================
 HOOK_DEFINE_INLINE(CallModuleNameHook) {
     static void Callback(exl::hook::nx64::InlineCtx* ctx) {
         ctx->X[0] = reinterpret_cast<uint64_t>(getModuleNameImp(ctx->X[0], ctx->X[8]));
@@ -227,16 +232,10 @@ HOOK_DEFINE_INLINE(CallSlideSeNameHook) {
     }
 };
 
-// =========================================================
 // INITIALIZATION
-// =========================================================
-
-// Template function for safe inline hook installation overwriting NOP
 template <typename HookType>
 inline void ReplaceWithNopAndHook(uintptr_t addr) {
-    // 1. Overwrite the original function call (BL) so it doesn't overwrite our X0
     exl::patch::CodePatcher(addr).Write<uint32_t>(ARM64_NOP);
-    // 2. Place an inline hook on this NOP. Exlaunch will copy the NOP, execute it and return control.
     HookType::InstallAtOffset(addr);
 }
 
@@ -245,7 +244,6 @@ namespace StrArray {
         LoadStrArrayHook::InstallAtOffset(ADDR_LOAD_STR_ARRAY);
         GetStrHook::InstallAtOffset(ADDR_GET_STR);
 
-        // Install inline hooks passing the class via template
         ReplaceWithNopAndHook<CallModuleNameHook>(ADDR_CALL_MODULE_NAME);
         ReplaceWithNopAndHook<CallCustomizeNameHook>(ADDR_CALL_CUSTOMIZE_NAME);
         ReplaceWithNopAndHook<CallBtnSeNameHook>(ADDR_CALL_BTN_SE_NAME);

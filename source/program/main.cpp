@@ -10,6 +10,9 @@
 #include <vector>
 #include "patches.hpp"
 #include "SpriteLoader.hpp"
+#include "Config.hpp"
+#include "ModLoader.hpp"
+#include "DatabaseLoader.hpp"
 
 // =========================================================
 // ADDRESSES & CONSTANTS (NSO = Ghidra - 0x100)
@@ -344,16 +347,23 @@ extern "C" void nnMain();
 HOOK_DEFINE_TRAMPOLINE(MainHook) {
     static void Callback() {
         nn::fs::MountSdCardForDebug(MOUNT_NAME);
+        if (Config::init()) {
+            ModLoader::init(); 
+        }
         Orig(); 
     }
 };
 
 extern "C" void exl_main(void* x0, void* x1) {
     exl::hook::Initialize();
-    ApplyCustomPatches();  
+
+    MainHook::InstallAtFuncPtr(nnMain);
+
+    ApplyCustomPatches();
+    DatabaseLoader::init();
     StrArray::init();
     SpriteLoader::init();
-    MainHook::InstallAtFuncPtr(nnMain);
+
 
     FindOrCreateScoreHook::InstallAtOffset(ADDR_FIND_OR_CREATE);
     FindScoreHook::InstallAtOffset(ADDR_FIND_SCORE);

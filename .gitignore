@@ -6,3 +6,4 @@ deploy/*
 *.elf
 *.nso
 *.npdm
+*.zip
