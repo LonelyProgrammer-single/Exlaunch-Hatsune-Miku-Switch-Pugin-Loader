@@ -9,7 +9,7 @@ I plan to port most cool hook based pacthes made for Project Diva Megamix+ for P
 
 # Current Features
 - Full support of mod_ prefix! Making it easy to install mods as on PC.
-- No Songs limit, saving scores and nodules and custom items in external savedata
+- No Songs limit, saving scores and modules and custom items in external savedata
 - Song ID limit up to 24576 (can be increased)
 - Increased Limit Of Spritesets to be loaded from 4096 to 32768
 - No Module, COS limits
@@ -22,10 +22,10 @@ I plan to port most cool hook based pacthes made for Project Diva Megamix+ for P
 - Scripts for parsing and merging multiple pv_db/toml into one; for easy NC->AC
 
 # Instructions
-- External file is located in sdmc:/DMLSwitchPort/Save/
-- mod_str_array.toml can be placed in sdmc:/DMLSwitchPort/lang2/ folder. Apparently you can also use game dlc prefixes, idea by Dandy Bleat. But with new mods support, just don't touch the location of already existing mod specific mod_str_array.toml
+- External save file is located in sdmc:/DMLSwitchPort/Save/
+- mod_str_array.toml can be placed in sdmc:/DMLSwitchPort/lang2/ folder. Apparently you can also use game dlc prefixes, idea by Dandy Bleat. But with new mods support, just don't touch the location of already existing mod specific mod_str_array.toml and enjoy names
 - Drop your mods in sdmc:/atmosphere/contents/TitleID/romfs/mods (to be fair, you still have to convert and rename in pv_db usm->mp4)
-- You can manage your priority of mods in sdmc:/DMLSwitchPort/config.toml file.
+- You can manage your priority of mods in sdmc:/DMLSwitchPort/config.toml file
 
 # TODO
 - Debug mode and test menu port from pc (not huge implementations)
