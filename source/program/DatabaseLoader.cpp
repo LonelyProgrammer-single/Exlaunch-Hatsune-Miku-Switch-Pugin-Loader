@@ -6,16 +6,43 @@
 #include <cstring>
 #include <string>
 #include <vector>
+#include <unordered_map>
+#include <mutex>
 
-// =========================================================
-// ADDRESSES & CONSTANTS (NSO = Ghidra - 0x100)
-// =========================================================
 #define ADDR_RESOLVE_FILE_PATH FIX(0x001F4580)
 #define ADDR_INIT_MDATA_MGR    FIX(0x0041AFC0)
 
-// Captured pointer to the MdataMgr instance
 static void* g_mdataMgrPtr = nullptr;
 
+/**
+ * Performance Cache: Prevents excessive SD card polling.
+ * First check hits the SD card, subsequent checks hit RAM.
+ */
+static std::unordered_map<std::string, bool> g_dbCache;
+static std::recursive_mutex g_cacheMtx;
+
+bool FastFileExists(const std::string& path) {
+    {
+        std::lock_guard<std::recursive_mutex> lock(g_cacheMtx);
+        auto it = g_dbCache.find(path);
+        if (it != g_dbCache.end()) return it->second;
+    }
+
+    nn::fs::FileHandle h;
+    bool exists = false;
+    if (R_SUCCEEDED(nn::fs::OpenFile(&h, path.c_str(), nn::fs::OpenMode_Read))) {
+        nn::fs::CloseFile(h);
+        exists = true;
+    }
+
+    std::lock_guard<std::recursive_mutex> lock(g_cacheMtx);
+    g_dbCache[path] = exists;
+    return exists;
+}
+
+/**
+ * Re-implementation of libc++ std::string for hooking game internals.
+ */
 struct libcxx_string {
     union {
         struct { uint64_t cap; uint64_t size; char* data; } l;
@@ -43,6 +70,9 @@ struct libcxx_string {
     }
 };
 
+/**
+ * Re-implementation of libc++ std::list for hooking game internals.
+ */
 struct libcxx_list_node {
     libcxx_list_node* prev; 
     libcxx_list_node* next; 
@@ -54,7 +84,6 @@ struct libcxx_list {
     libcxx_list_node* end_next; 
     size_t size;                
     
-    // Append prefixes to the end of the list for highest priority
     void push_back(const char* str) {
         size_t len = std::strlen(str);
         libcxx_list_node* node = (libcxx_list_node*)GameOperatorNew(sizeof(libcxx_list_node));
@@ -78,6 +107,9 @@ struct libcxx_list {
 
 constexpr char MAGIC = 0x01;
 
+/**
+ * Resolves the path for mod-specific database files (e.g., song_db.mod.txt).
+ */
 bool resolveModDatabaseFilePath(const libcxx_string& filePath, std::string& destFilePath) {
     std::string pathStr = filePath.c_str();
     const size_t magicIdx0 = pathStr.find(MAGIC);
@@ -100,22 +132,21 @@ bool resolveModDatabaseFilePath(const libcxx_string& filePath, std::string& dest
     return true;
 }
 
+/**
+ * Hook to override the game's file resolution logic to prioritize modded files.
+ */
 HOOK_DEFINE_TRAMPOLINE(ResolveFilePathObserverHook) {
     static uint64_t Callback(libcxx_string* filePath, libcxx_string* destFilePath) {
         std::string destPathTmp;
 
-        // Check if the path contains our custom mod prefix markers
         if (filePath && resolveModDatabaseFilePath(*filePath, destPathTmp)) {
-            nn::fs::FileHandle h;
-            // Verify if the actual file exists in the mod directory
-            if (R_SUCCEEDED(nn::fs::OpenFile(&h, destPathTmp.c_str(), nn::fs::OpenMode_Read))) {
-                nn::fs::CloseFile(h);
+            // Check performance cache before hitting physical SD
+            if (FastFileExists(destPathTmp)) {
                 if (destFilePath) {
                     destFilePath->assign(destPathTmp.c_str(), destPathTmp.length());
                 }
-                return 1; // Success, the game will now load the modded DB file
+                return 1; 
             }
-            // If mod file is missing, return 0 to prevent crashes due to invalid \x01 characters
             return 0; 
         }
 
@@ -126,7 +157,6 @@ HOOK_DEFINE_TRAMPOLINE(ResolveFilePathObserverHook) {
 HOOK_DEFINE_TRAMPOLINE(InitMdataMgrHook) {
     static void Callback(void* this_ptr) {
         Orig(this_ptr);
-        // Capture the 'this' pointer of MdataMgr to use it once SD card is mounted
         g_mdataMgrPtr = this_ptr;
     }
 };
@@ -137,11 +167,11 @@ void DatabaseLoader::init() {
 }
 
 void DatabaseLoader::initMdataMgr(const std::vector<std::string>& modRomDirectoryPaths) {
-    // This is called after SD mounting. It injects paths directly into the captured instance.
     if (!g_mdataMgrPtr) return; 
     
     auto list = reinterpret_cast<libcxx_list*>((uintptr_t)g_mdataMgrPtr + 0x178);
     
+    // Inject mod directory markers using the special MAGIC character
     for (auto it = modRomDirectoryPaths.rbegin(); it != modRomDirectoryPaths.rend(); ++it) {
         std::string path;
         path += MAGIC; path += *it; path += MAGIC; path += "_";
