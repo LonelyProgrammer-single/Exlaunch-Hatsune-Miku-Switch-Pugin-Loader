@@ -9,6 +9,7 @@ I plan to port most cool hook based pacthes made for Project Diva Megamix+ for P
 
 # Current Features
 - Full support of mod_ prefix! Making it easy to install mods as on PC.
+- DEBUG AND FREECAM
 - No Songs limit, saving scores and modules and custom items in external savedata
 - Song ID limit up to 24576 (can be increased)
 - Increased Limit Of Spritesets to be loaded from 4096 to 32768
@@ -27,9 +28,71 @@ I plan to port most cool hook based pacthes made for Project Diva Megamix+ for P
 - Drop your mods in sdmc:/atmosphere/contents/TitleID/romfs/mods (to be fair, you still have to convert and rename in pv_db usm->mp4)
 - You can manage your priority of mods in sdmc:/DMLSwitchPort/config.toml file
 
+
+-------------------------------------------------------------------------------------------------------------------------
+
+Introducing fully ported **Debug mode** and **Freecam** mod from PC to Nintendo Switch! Oh, and rendering while paused.
+NOTE: Debug and freecam is totally disabled by default. You should go to global config.toml at sdmc:/DMLSwitchPort/ and change `debug = false` to `debug = true`
+
+### Here is a list of features:
+- Access _most_ of debug game substates
+- Advanced freecam in Rhythm game, PV modes; In customization menu as well; Pausing will make game render stuff
+- Use mouse to open a real time dw gui for other debug windows by right click (Ctrl + RMC alternative)
+- Full usability with joycons/controller (A LOT of hotkeys, listed below)
+- Physical mouse support
+- Changing game substates three different ways: through Tesla overlay; through txt file (a template where you change desired substate trigger from 0 to 1); Blindfolded state selector 
+- Generate **osage play data** in corresponding substate! Move files from `sdmc:/atmosphere/contents/TID/romfs/ram/osage_play_data_tmp/0/` to `osage_play_data` directory (for example create a new mod, or put in any dlc folder)
+- Quickly jump to Main Menu
+- Included removed limits (SWITCH EXCLUSIVE) for stages and modules and a3d (cos limit, three digits truncations; these are specific to debug)
+- Excluding any (ig?) conflicts with game and between each other making it possible to use freecam in debug
+
+
+### Hotkeys:
+
+**Freecam**
+- (L + R + Minus) — Enable/Disable Freecam
+- (D-Pad + Up-Down-Left-Right) — Move Forward-Backward-Left-Right
+- (Right stick) — Look in a desired direction judged by stick movement
+- (B/X) — Move Down/Up
+- (L/R) — Zoom Out/In
+- (Hold_Y + L/R) — Rotate (lean) Left/Right
+- (Hold_R3) — Speed boost of any camera movement 
+ _note_: you can still use A button to pause without menu and capture beauty
+
+**Debug Mode**
+- (L + R + Plus) — Enable/Disable Debug Mode
+- (L3) — Toggle Mouse
+- (Left stick) — Mouse control
+- (ZL) — Left Mouse Click
+- (ZR) — Right Mouse Click
+- (Y_Hold) — Mouse movement speed boost
+- (L + R + D-Pad_Up) — Fast travel to Test Mode State
+- (L + R + D-Pad_Down) — Fast travel to Data Test State
+- (L + R + D-Pad_Left) — Fast travel to CS Menu (umm, instant crash tho)
+- (L + R + D-Pad_Right) — Fast travel to Data Menu Switch (very useful to quickly jump to main menu)
+- (Hold_R3 + D-Pad Up/Down + A for confirmation) — Blindfolded selection of exact state from the list (Master Selector); Starts at 9, remembers last used selected number of substate. 
+
+
+### Other info:
+- There will be file created with all debug states for users who can't use Tesla overlays: sdmc:/DMLSwitchPort/emu_states.txt that will contain such format:
+`Format: StID SubID Trigger # Name`
+ `3 11 0 # 11: DT_STG`
+so `3` is StateID
+     `11` is SubStateID
+     `0` is Trigger
+     `# 11: DT_STG` is # Name
+Set 'Trigger' to 1 and save to jump. Once you save you will be redirected to the substate you chose. 1 will be set back to 0 after jump.
+- All that debug stuff is inspired by original deck window from MM+ Debug mod by `nastys`
+- You can totally disable debug and freecam by having `debug = false` in global config file. This way, none of hotkeys and state selectors can be used.
+- Debug may crash randomly when you select something. From my experience, the same random crashes happen in MM+
+- Aet_DT is known to crash, even tho it works fine in MM+. It seems to fail at `strlen and cmp` or something. No solution was found, even after disabling half of plugin features and all mods even LayerFS ones.
+- Saving light_param or any other config makes game crash. Tried few times to do something in FsHooks, no luck.
+
+
+**Tesla overlay** by me:
+https://github.com/lsmsmx/MMDebugSwitcherNS/releases/tag/v1.0
+
 # TODO
-- Debug mode and test menu port from pc (not huge implementations)
-- Freecam (same as debug)
 - Fixing some hairs don't appear as separate entry
 - Proper pv_parser to not make game iterate every possible pv_id (i keep failing to make it not crash the game)
 - Fixing issue where pv_db info about singers doesn't apply and it always sets to default miku (prob have to rewrite saving logic, but the issue itself isn't that big of a deal, so not going to fix soon)
