@@ -41,7 +41,7 @@ NOTE: Debug and freecam is totally disabled by default. You should go to global 
 - Use mouse to open a real time dw gui for other debug windows by right click (Ctrl + RMC alternative)
 - Full usability with joycons/controller (A LOT of hotkeys, listed below)
 - Physical mouse support
-- Changing game substates three different ways: through Tesla overlay; through txt file (a template where you change desired substate trigger from 0 to 1); Blindfolded state selector 
+- Changing game substates two different ways: through Tesla overlay; through txt file (a template where you change desired substate trigger from 0 to 1);
 - Generate **osage play data** in corresponding substate! Move files from `sdmc:/atmosphere/contents/TID/romfs/ram/osage_play_data_tmp/0/` to `osage_play_data` directory (for example create a new mod, or put in any dlc folder)
 - Quickly jump to Main Menu
 - Included removed limits (SWITCH EXCLUSIVE) for stages and modules and a3d (cos limit, three digits truncations; these are specific to debug)
@@ -71,7 +71,6 @@ NOTE: Debug and freecam is totally disabled by default. You should go to global 
 - (L + R + D-Pad_Down) — Fast travel to Data Test State
 - (L + R + D-Pad_Left) — Fast travel to CS Menu (umm, instant crash tho)
 - (L + R + D-Pad_Right) — Fast travel to Data Menu Switch (very useful to quickly jump to main menu)
-- (Hold_R3 + D-Pad Up/Down + A for confirmation) — Blindfolded selection of exact state from the list (Master Selector); Starts at 9, remembers last used selected number of substate. 
 
 
 ### Other info:
