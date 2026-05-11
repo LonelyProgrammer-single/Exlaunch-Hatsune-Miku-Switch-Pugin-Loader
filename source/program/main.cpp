@@ -18,6 +18,12 @@
 #include <nn/os.hpp>
 #include <ctime>
 #include "FsHooks.hpp"
+#include "SSSEnabler.hpp"
+#include "imgui/imgui_nvn.h"
+#include "lib.hpp"
+#include "imgui/imgui_nvn.h"
+#include "MotionImGui.hpp"
+#include "imgui/tenacity_font.h"
 
 // =========================================================
 // ADDRESSES & CONSTANTS (NSO = Ghidra - 0x100)
@@ -365,6 +371,8 @@ HOOK_DEFINE_TRAMPOLINE(SyncManagerHook) {
     }
 };
 
+
+
 // =========================================================
 // INITIALIZATION
 // =========================================================
@@ -378,6 +386,7 @@ HOOK_DEFINE_TRAMPOLINE(MainHook) {
             ModLoader::init();
             InitFreeCam();
             DebugMode::Init();
+            MotionImGui::Init();
         }
 
         FsHooks::Init();
@@ -388,6 +397,7 @@ HOOK_DEFINE_TRAMPOLINE(MainHook) {
 
 
 extern "C" void exl_main(void* x0, void* x1) {
+
     exl::hook::Initialize();
 
     nn::hid::Initialize();
@@ -399,7 +409,8 @@ extern "C" void exl_main(void* x0, void* x1) {
     DatabaseLoader::init();
     StrArray::init();
     SpriteLoader::init();
-    
+
+    SssEnabler::Init();
 
 
     FindOrCreateScoreHook::InstallAtOffset(ADDR_FIND_OR_CREATE);
